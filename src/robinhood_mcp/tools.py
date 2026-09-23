@@ -429,9 +429,7 @@ def get_option_chain(
         optionType=option_type,
     )
     if not isinstance(result, list):
-        raise RobinhoodError(
-            f"No options found for {symbol} expiring {expiration_date}"
-        )
+        raise RobinhoodError(f"No options found for {symbol} expiring {expiration_date}")
     return result
 
 
