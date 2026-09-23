@@ -129,7 +129,8 @@ def _patched_validate_sherrif_id(
     # Poll for mobile app approval
     prompts_url = f"https://api.robinhood.com/push/{challenge_id}/get_prompts_status/"
     print(
-        "\n[robinhood-readonly-mcp] Verification required — open the Robinhood app and approve the login.\n"
+        "\n[robinhood-readonly-mcp] Verification required — open the Robinhood app "
+        "and approve the login.\n"
         "[robinhood-readonly-mcp] Waiting up to 2 minutes...",
         file=sys.stderr,
     )
