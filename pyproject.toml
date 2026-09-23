@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "robinhood-mcp"
-version = "0.1.2"
+name = "robinhood-readonly-mcp"
+version = "0.2.0"
 description = "Read-only MCP server for Robinhood portfolio research"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
 authors = [
-    {name = "Jack Arturo", email = "jack@verygoodplugins.com"}
+    {name = "Project Contributors"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -34,14 +34,10 @@ dev = [
 ]
 
 [project.scripts]
-robinhood-mcp = "robinhood_mcp.server:main"
-
-[project.urls]
-Homepage = "https://verygoodplugins.com/?utm_source=github"
-Repository = "https://github.com/verygoodplugins/robinhood-mcp"
+robinhood-readonly-mcp = "robinhood_mcp.server:main"
 
 [tool.mcp]
-name = "io.github.verygoodplugins/robinhood-mcp"
+name = "robinhood-readonly-mcp"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -382,6 +382,95 @@ def get_options_positions() -> list[dict[str, Any]]:
     return result if isinstance(result, list) else []
 
 
+def get_available_expirations(symbol: str) -> list[str]:
+    """Get all available option expiration dates for a stock.
+
+    Args:
+        symbol: Stock ticker symbol (e.g., "AAPL").
+
+    Returns:
+        Sorted list of expiration date strings in YYYY-MM-DD format.
+    """
+    symbol = _normalize_symbol(symbol)
+    chain = _safe_call(rh.options.get_chains, symbol)
+    if not isinstance(chain, dict):
+        raise RobinhoodError(f"No option chain found for symbol: {symbol}")
+    dates = chain.get("expiration_dates")
+    if not isinstance(dates, list):
+        raise RobinhoodError(f"No expiration dates available for symbol: {symbol}")
+    return sorted(dates)
+
+
+def get_option_chain(
+    symbol: str,
+    expiration_date: str,
+    option_type: Literal["call", "put"] | None = None,
+) -> list[dict[str, Any]]:
+    """Get the full option chain for a stock on a specific expiration date.
+
+    Args:
+        symbol: Stock ticker symbol (e.g., "AAPL").
+        expiration_date: Expiration date in YYYY-MM-DD format.
+        option_type: Filter by "call" or "put". Leave None for both.
+
+    Returns:
+        List of option contracts with strike, bid, ask, volume, open interest,
+        implied volatility, delta, gamma, theta, vega, and rho.
+    """
+    symbol = _normalize_symbol(symbol)
+
+    if option_type is not None and option_type not in ("call", "put"):
+        raise RobinhoodError("option_type must be 'call', 'put', or None")
+
+    result = _safe_call(
+        rh.options.find_options_by_expiration,
+        symbol,
+        expirationDate=expiration_date,
+        optionType=option_type,
+    )
+    if not isinstance(result, list):
+        raise RobinhoodError(
+            f"No options found for {symbol} expiring {expiration_date}"
+        )
+    return result
+
+
+def get_options_by_expiration_and_strike(
+    symbol: str,
+    expiration_date: str,
+    strike_price: str,
+    option_type: Literal["call", "put"] | None = None,
+) -> list[dict[str, Any]]:
+    """Get options for a stock filtered by expiration date and strike price.
+
+    Args:
+        symbol: Stock ticker symbol (e.g., "AAPL").
+        expiration_date: Expiration date in YYYY-MM-DD format.
+        strike_price: Strike price as a string (e.g., "150.00").
+        option_type: Filter by "call" or "put". Leave None for both.
+
+    Returns:
+        List of matching option contracts with greeks and market data.
+    """
+    symbol = _normalize_symbol(symbol)
+
+    if option_type is not None and option_type not in ("call", "put"):
+        raise RobinhoodError("option_type must be 'call', 'put', or None")
+
+    result = _safe_call(
+        rh.options.find_options_by_expiration_and_strike,
+        symbol,
+        expirationDate=expiration_date,
+        strikePrice=strike_price,
+        optionType=option_type,
+    )
+    if not isinstance(result, list):
+        raise RobinhoodError(
+            f"No options found for {symbol} expiring {expiration_date} at strike {strike_price}"
+        )
+    return result
+
+
 def search_symbols(query: str) -> list[dict[str, Any]]:
     """Search for stock symbols by company name or ticker.
 

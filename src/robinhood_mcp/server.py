@@ -5,17 +5,21 @@ import threading
 import time
 from typing import Literal
 
+import robin_stocks.robinhood as rh
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
 from .auth import AuthenticationError, EnvironmentVariablesError, is_logged_in, login
 from .tools import (
     RobinhoodError,
+    get_available_expirations,
     get_dividends,
     get_earnings,
     get_fundamentals,
     get_historicals,
     get_news,
+    get_option_chain,
+    get_options_by_expiration_and_strike,
     get_options_positions,
     get_portfolio,
     get_position,
@@ -29,14 +33,21 @@ from .tools import (
 # Load environment variables
 load_dotenv()
 
+# Redirect robin_stocks output away from stdout so it never corrupts the MCP
+# JSON stream. Every robin_stocks submodule has its own OUTPUT global, so each
+# must be patched individually.
+for _rh_mod in (rh.helper, rh.options, rh.stocks, rh.account, rh.profiles, rh.authentication):
+    if hasattr(_rh_mod, "set_output"):
+        _rh_mod.set_output(sys.stderr)
+
 # Initialize FastMCP server (older versions don't accept description kwarg).
 try:
     mcp = FastMCP(
-        "robinhood-mcp",
+        "robinhood-readonly-mcp",
         description="Read-only research tools for Robinhood portfolio data",
     )
 except TypeError:
-    mcp = FastMCP("robinhood-mcp")
+    mcp = FastMCP("robinhood-readonly-mcp")
 
 # Track login state
 _login_attempted = False
@@ -81,18 +92,18 @@ def _ensure_logged_in() -> None:
                 login()
                 _cached_login_status = True
                 _cached_login_status_ts = time.monotonic()
-                print("[robinhood-mcp] Logged in to Robinhood", file=sys.stderr)
+                print("[robinhood-readonly-mcp] Logged in to Robinhood", file=sys.stderr)
             except EnvironmentVariablesError as e:
                 _cached_login_status = False
                 _cached_login_status_ts = time.monotonic()
                 _login_error = str(e)
-                print(f"[robinhood-mcp] Login failed: {e}", file=sys.stderr)
+                print(f"[robinhood-readonly-mcp] Login failed: {e}", file=sys.stderr)
                 raise RobinhoodError(f"Not logged in: {_login_error}") from e
             except AuthenticationError as e:
                 _cached_login_status = False
                 _cached_login_status_ts = time.monotonic()
                 message = str(e)
-                print(f"[robinhood-mcp] Login failed: {e}", file=sys.stderr)
+                print(f"[robinhood-readonly-mcp] Login failed: {e}", file=sys.stderr)
                 raise RobinhoodError(f"Not logged in: {message}") from e
 
 
@@ -254,6 +265,66 @@ def robinhood_get_options_positions() -> list:
     """
     _ensure_logged_in()
     return get_options_positions()
+
+
+@mcp.tool()
+def robinhood_get_available_expirations(symbol: str) -> list:
+    """Get all available option expiration dates for a stock.
+
+    Args:
+        symbol: Stock ticker symbol (e.g., "AAPL", "TSLA")
+
+    Returns a sorted list of expiration date strings in YYYY-MM-DD format.
+    Use these dates with robinhood_get_option_chain or
+    robinhood_get_options_by_expiration_and_strike.
+    """
+    _ensure_logged_in()
+    return get_available_expirations(symbol)
+
+
+@mcp.tool()
+def robinhood_get_option_chain(
+    symbol: str,
+    expiration_date: str,
+    option_type: Literal["call", "put"] | None = None,
+) -> list:
+    """Get the full option chain for a stock on a specific expiration date.
+
+    Args:
+        symbol: Stock ticker symbol (e.g., "AAPL", "TSLA")
+        expiration_date: Expiration date in YYYY-MM-DD format
+        option_type: Filter by "call" or "put". Omit for both.
+
+    Returns list of option contracts including strike price, bid/ask,
+    volume, open interest, implied volatility, and greeks (delta,
+    gamma, theta, vega, rho). Call robinhood_get_available_expirations
+    first to get valid expiration dates.
+    """
+    _ensure_logged_in()
+    return get_option_chain(symbol, expiration_date, option_type)
+
+
+@mcp.tool()
+def robinhood_get_options_by_expiration_and_strike(
+    symbol: str,
+    expiration_date: str,
+    strike_price: str,
+    option_type: Literal["call", "put"] | None = None,
+) -> list:
+    """Get options for a stock filtered by expiration date and strike price.
+
+    Args:
+        symbol: Stock ticker symbol (e.g., "AAPL", "TSLA")
+        expiration_date: Expiration date in YYYY-MM-DD format
+        strike_price: Strike price as a string (e.g., "150.00")
+        option_type: Filter by "call" or "put". Omit for both.
+
+    Returns list of matching option contracts with greeks and market data.
+    Useful for quickly looking up a specific contract rather than
+    fetching the full chain.
+    """
+    _ensure_logged_in()
+    return get_options_by_expiration_and_strike(symbol, expiration_date, strike_price, option_type)
 
 
 @mcp.tool()

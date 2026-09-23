@@ -1,1 +1,1 @@
-"""Tests for robinhood-mcp."""
+"""Tests for robinhood-readonly-mcp."""

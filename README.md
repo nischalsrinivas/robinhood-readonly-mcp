@@ -1,18 +1,14 @@
-<!-- mcp-name: io.github.verygoodplugins/robinhood-mcp -->
-
-# robinhood-mcp
-
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/verygoodplugins/robinhood-mcp)
-[![PyPI version](https://badge.fury.io/py/robinhood-mcp.svg)](https://badge.fury.io/py/robinhood-mcp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
+# robinhood-readonly-mcp
 
 A read-only MCP server for Robinhood portfolio research. Wraps [robin_stocks](https://github.com/jmfernandes/robin_stocks) to give AI assistants access to your portfolio data for analysis.
 
 > **⚠️ Research Tool Only** - This server provides read-only access. No trading functionality is exposed.
 
 > **⚠️ Unofficial API** - Uses robin_stocks unofficial API. May break without notice. Use at your own risk.
+
+## Source Project
+
+This project is based on [verygoodplugins/robinhood-mcp](https://github.com/verygoodplugins/robinhood-mcp).
 
 ## What Can You Do With This?
 
@@ -68,27 +64,47 @@ Bulk research stocks you're tracking.
 
 ## Installation
 
-```bash
-pip install robinhood-mcp
-```
-
-Or run directly with uvx:
+Check out the source and run the server from that checkout:
 
 ```bash
-uvx robinhood-mcp
+git clone <your-github-repository-url> robinhood-readonly-mcp
+cd robinhood-readonly-mcp
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
 ```
+
+Start the MCP server from the source tree:
+
+```bash
+python -m robinhood_mcp.server
+```
+
+The server uses stdio transport and waits for an MCP client to connect. It is
+not intended to be opened as a normal web server or visited in a browser.
 
 ## Configuration
 
-### Environment Variables
+### VS Code
 
-```bash
-export ROBINHOOD_USERNAME="your_email"
-export ROBINHOOD_PASSWORD="your_password"
-export ROBINHOOD_TOTP_SECRET="your_2fa_secret"  # Only if you use authenticator app
+Add the following server configuration to `~/Library/Application Support/Code/User/mcp.json`:
+
+```json
+{
+  "servers": {
+    "robinhood": {
+      "command": "/absolute/path/to/robinhood-mcp/.venv/bin/python",
+      "args": ["-m", "robinhood_mcp.server"],
+      "env": {
+        "ROBINHOOD_USERNAME": "user name",
+        "ROBINHOOD_PASSWORD": "password"
+      }
+    }
+  }
+}
 ```
-
-**Note:** If you use Face ID, Touch ID, or passcode login on Robinhood (no authenticator app), you don't need `ROBINHOOD_TOTP_SECRET`.
 
 ### Claude Desktop
 
@@ -98,8 +114,9 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "robinhood": {
-      "command": "uvx",
-      "args": ["robinhood-mcp"],
+      "command": "/absolute/path/to/robinhood-readonly-mcp/.venv/bin/python",
+      "args": ["-m", "robinhood_mcp.server"],
+      "cwd": "/absolute/path/to/robinhood-readonly-mcp",
       "env": {
         "ROBINHOOD_USERNAME": "your_email",
         "ROBINHOOD_PASSWORD": "your_password"
@@ -112,7 +129,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ### Claude Code
 
 ```bash
-claude mcp add robinhood -- uvx robinhood-mcp
+claude mcp add robinhood -- /absolute/path/to/robinhood-readonly-mcp/.venv/bin/python -m robinhood_mcp.server
 ```
 
 ## Available Tools
@@ -131,6 +148,9 @@ claude mcp add robinhood -- uvx robinhood-mcp
 | `robinhood_get_ratings`           | Analyst buy/hold/sell ratings                        |
 | `robinhood_get_dividends`         | Dividend payment history                             |
 | `robinhood_get_options_positions` | Current options positions                            |
+| `robinhood_get_available_expirations` | Available option expiration dates              |
+| `robinhood_get_option_chain`      | Read-only option chain data for an expiration       |
+| `robinhood_get_options_by_expiration_and_strike` | Options at an expiration and strike |
 | `robinhood_search_symbols`        | Search stocks by name or ticker                      |
 
 ## Example Conversations
@@ -177,9 +197,8 @@ holding and is much faster for questions like "Should I add more HIMS?"
 ## Development
 
 ```bash
-git clone https://github.com/verygoodplugins/robinhood-mcp.git
-cd robinhood-mcp
-pip install -e ".[dev]"
+cd robinhood-readonly-mcp
+python -m pip install -e ".[dev]"
 
 # Lint
 ruff check . && ruff format --check .
@@ -188,7 +207,7 @@ ruff check . && ruff format --check .
 pytest
 
 # Run locally
-robinhood-mcp
+python -m robinhood_mcp.server
 ```
 
 ## Troubleshooting
@@ -196,14 +215,7 @@ robinhood-mcp
 **"Not logged in" errors:**
 
 - Verify your username and password are correct
-- If you have 2FA with an authenticator app, you need `ROBINHOOD_TOTP_SECRET`
 - Try logging in through the Robinhood app to ensure your account isn't locked
-
-**"Non-base32 digit found" error:**
-
-- Your TOTP secret contains invalid characters
-- The secret should only contain letters A-Z and digits 2-7
-- If you don't use an authenticator app, remove `ROBINHOOD_TOTP_SECRET` entirely
 
 **Rate limiting:**
 
@@ -213,6 +225,9 @@ robinhood-mcp
 ## License
 
 MIT
+
+This project includes code originally released under the MIT License. The
+original copyright and permission notice are preserved in `LICENSE`.
 
 ## Disclaimer
 
@@ -262,17 +277,4 @@ For each of my top 10 holdings by value:
 Format as a markdown report I can review on the weekend.
 ```
 
-## Credits
-
-Built with 🧡 by [Jack Arturo](https://drunk.support) at [Very Good Plugins](https://verygoodplugins.com/?utm_source=robinhood-mcp).
-
 Powered by [robin_stocks](https://github.com/jmfernandes/robin_stocks) and [FastMCP](https://github.com/jlowin/fastmcp).
-
-## Links
-
-- [GitHub](https://github.com/verygoodplugins/robinhood-mcp)
-- [PyPI](https://pypi.org/project/robinhood-mcp/)
-- [Very Good Plugins](https://verygoodplugins.com/?utm_source=robinhood-mcp)
-- [AutoMem](https://automem.ai) - AI memory infrastructure
-- [robin_stocks Documentation](https://robin-stocks.readthedocs.io/)
-- [Model Context Protocol](https://modelcontextprotocol.io/)

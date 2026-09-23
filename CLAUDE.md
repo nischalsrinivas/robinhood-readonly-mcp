@@ -4,14 +4,14 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-**robinhood-mcp** is a read-only MCP server that wraps the `robin_stocks` Python library to provide research tools for Robinhood portfolio data. This is strictly a research/educational tool - no trading functionality is exposed.
+**robinhood-readonly-mcp** is a read-only MCP server that wraps the `robin_stocks` Python library to provide research tools for Robinhood portfolio data. This is strictly a research/educational tool - no trading functionality is exposed.
 
 ## Architecture
 
 ```
 src/robinhood_mcp/
 ├── __init__.py      # Package version
-├── auth.py          # Authentication with TOTP support
+├── auth.py          # Authentication
 ├── tools.py         # 12 read-only tool implementations
 └── server.py        # FastMCP server with tool registration
 ```
@@ -46,7 +46,7 @@ pytest -v
 pytest --cov=src --cov-report=html
 
 # Run the server
-robinhood-mcp
+robinhood-readonly-mcp
 ```
 
 ## Environment Variables
@@ -55,7 +55,6 @@ robinhood-mcp
 |----------|----------|-------------|
 | `ROBINHOOD_USERNAME` | Yes | Robinhood account email |
 | `ROBINHOOD_PASSWORD` | Yes | Robinhood account password |
-| `ROBINHOOD_TOTP_SECRET` | No | Base32 TOTP secret for 2FA |
 
 ## Testing
 

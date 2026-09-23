@@ -129,8 +129,8 @@ def _patched_validate_sherrif_id(
     # Poll for mobile app approval
     prompts_url = f"https://api.robinhood.com/push/{challenge_id}/get_prompts_status/"
     print(
-        "\n[robinhood-mcp] Verification required — open the Robinhood app and approve the login.\n"
-        "[robinhood-mcp] Waiting up to 2 minutes...",
+        "\n[robinhood-readonly-mcp] Verification required — open the Robinhood app and approve the login.\n"
+        "[robinhood-readonly-mcp] Waiting up to 2 minutes...",
         file=sys.stderr,
     )
 
@@ -141,24 +141,24 @@ def _patched_validate_sherrif_id(
         elapsed = int(time.time() - start)
         if not isinstance(status_res, dict):
             print(
-                f"[robinhood-mcp] Approval status unavailable, retrying... ({elapsed}s)",
+                f"[robinhood-readonly-mcp] Approval status unavailable, retrying... ({elapsed}s)",
                 file=sys.stderr,
             )
             continue
         if status_res.get("challenge_status") == "validated":
             result = _request_workflow_result(inquiries_url)
             if result == "workflow_status_approved":
-                print("[robinhood-mcp] Login approved!", file=sys.stderr)
+                print("[robinhood-readonly-mcp] Login approved!", file=sys.stderr)
                 return
             if not result:
                 print(
-                    "[robinhood-mcp] Approval recorded, waiting for workflow "
+                    "[robinhood-readonly-mcp] Approval recorded, waiting for workflow "
                     f"finalization... ({elapsed}s)",
                     file=sys.stderr,
                 )
                 continue
             raise AuthenticationError(f"Challenge validated but workflow not approved: {result}")
-        print(f"[robinhood-mcp] Waiting for approval... ({elapsed}s)", file=sys.stderr)
+        print(f"[robinhood-readonly-mcp] Waiting for approval... ({elapsed}s)", file=sys.stderr)
 
     raise AuthenticationError("Login timed out after 2 minutes. Restart server and approve in app.")
 
@@ -171,13 +171,13 @@ if callable(_target):
         rh_auth._validate_sherrif_id = _patched_validate_sherrif_id
     else:
         print(
-            "[robinhood-mcp] WARNING: unexpected _validate_sherrif_id "
+            "[robinhood-readonly-mcp] WARNING: unexpected _validate_sherrif_id "
             f"signature {_params}. Upstream robin_stocks API may have changed.",
             file=sys.stderr,
         )
 else:
     print(
-        "[robinhood-mcp] WARNING: rh_auth._validate_sherrif_id not found "
+        "[robinhood-readonly-mcp] WARNING: rh_auth._validate_sherrif_id not found "
         "or not callable. The upstream robin_stocks API may have changed "
         "— consider pinning or upgrading the dependency.",
         file=sys.stderr,
@@ -205,7 +205,10 @@ def _clear_stale_pickle() -> None:
     if os.path.isfile(pickle_path):
         try:
             os.remove(pickle_path)
-            print(f"[robinhood-mcp] Cleared stale session cache: {pickle_path}", file=sys.stderr)
+            print(
+                f"[robinhood-readonly-mcp] Cleared stale session cache: {pickle_path}",
+                file=sys.stderr,
+            )
         except OSError as e:
             logger.exception("Failed to clear stale session cache at %s: %s", pickle_path, e)
             raise
@@ -216,7 +219,7 @@ def _emit_captured_login_stdout(output: str) -> None:
     for raw_line in output.splitlines():
         line = raw_line.strip()
         if line:
-            print(f"[robinhood-mcp][robin_stocks] {line}", file=sys.stderr)
+            print(f"[robinhood-readonly-mcp][robin_stocks] {line}", file=sys.stderr)
 
 
 def _login_with_captured_stdout(

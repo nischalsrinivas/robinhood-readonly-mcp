@@ -162,9 +162,9 @@ class TestLogin:
 
         assert result == {"access_token": "test"}
         assert captured.out == ""
-        assert "[robinhood-mcp][robin_stocks] Starting login process..." in captured.err
+        assert "[robinhood-readonly-mcp][robin_stocks] Starting login process..." in captured.err
         assert (
-            "[robinhood-mcp][robin_stocks] Verification required, handling challenge..."
+            "[robinhood-readonly-mcp][robin_stocks] Verification required, handling challenge..."
             in captured.err
         )
 
